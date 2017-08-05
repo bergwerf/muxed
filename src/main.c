@@ -7,9 +7,20 @@
 
 #include "editor.c"
 
+#ifndef CTRL
+#define CTRL(c) ((c)&037)
+#endif
+
 int main(int argc, char *argv[]) {
+  if (argc < 2) {
+    fprintf(stderr, "Please specify a file path.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  bool err = false;
   EditorData *data;
   data = (EditorData *)malloc(sizeof(EditorData));
+  data->filePath = argv[1];
 
   // Initialize editor window.
   if ((data->window = initscr()) == NULL) {
@@ -20,13 +31,21 @@ int main(int argc, char *argv[]) {
   noecho();                    // Turn off key echoing
   keypad(data->window, TRUE);  // Enable the keypad for non-char keys
 
-  // Add initial newline.
-  insertLine(data, -1);
+  // Try to read file.
+  err = restoreFromFile(data);
+  if (err) {
+    // Add initial newline.
+    insertLine(data, -1);
+  } else {
+    redrawEditor(data);
+    move(0, 0);
+  }
 
   // Keyboard event loop.
   int cursorRow = 0, cursorCol = 0;
-  bool quit = false, err = false, redraw = false;
+  bool quit = false, redraw = false;
   int exitCode = EXIT_SUCCESS;
+
   while (!quit) {
     int inputCode = getch();
     if (inputCode >= ' ' && inputCode <= '~') {
@@ -35,23 +54,53 @@ int main(int argc, char *argv[]) {
       cursorCol++;
       redraw = true;
     } else {
-      // TODO: wrap around!
+      int lineLength;
       switch (inputCode) {
         case KEY_LEFT:
-          cursorCol--;
+          if (cursorCol == 0) {
+            if (cursorRow > 0) {
+              cursorRow--;
+              cursorCol = getLineLength(data, cursorRow);
+            }
+          } else {
+            cursorCol--;
+          }
           break;
+
         case KEY_RIGHT:
-          cursorCol++;
+          lineLength = getLineLength(data, cursorRow);
+          if (cursorCol == lineLength) {
+            if (cursorRow + 1 < data->lineCount) {
+              cursorRow++;
+              cursorCol = 0;
+            }
+          } else {
+            cursorCol++;
+          }
           break;
+
         case KEY_BACKSPACE:
-          err = removeText(data, cursorRow, cursorCol, 1);
-          redraw = true;
-          cursorCol--;
+          if (cursorCol == 0) {
+            if (cursorRow > 0) {
+              cursorRow--;
+              cursorCol = getLineLength(data, cursorRow);
+            }
+          } else {
+            err = removeText(data, cursorRow, cursorCol, 1);
+            redraw = true;
+            cursorCol--;
+          }
           break;
+
         case '\n':
           err = insertLine(data, cursorRow);
           cursorRow++;
           cursorCol = 0;
+          redraw = true;
+          break;
+
+        case CTRL('x'):
+          err = saveAsFile(data);
           break;
       }
     }
