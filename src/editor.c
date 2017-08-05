@@ -170,8 +170,7 @@ bool restoreFromFile(EditorData *data) {
       // Count lines.
       int lineCount = 0;
       for (int i = 0; i < fileSize; i++) {
-        // TODO: this is not very nice, now the buffer cannot contain 0
-        // characters.
+        // TODO: This is not very nice, the buffer cannot contain NULLs.
         if (buffer[i] == '\n') {
           lineCount++;
         }

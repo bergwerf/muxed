@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
       redraw = true;
     } else {
       int lineLength;
-      // TODO: remove redundancy from arrow key navigation and insert/delete.
+      // TODO: Remove redundancy from arrow key navigation and insert/delete.
       switch (inputCode) {
         case KEY_LEFT:
           if (cursorCol == 0) {
@@ -130,7 +130,7 @@ int main(int argc, char *argv[]) {
     getmaxyx(data->window, h, w);
 
     // Update scrolling.
-    // TODO: remove redundancy.
+    // TODO: Remove redundancy.
     int rCursorRow = cursorRow - data->rowOffset;
     int rCursorCol = cursorCol - data->colOffset;
 
