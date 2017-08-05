@@ -55,6 +55,7 @@ int main(int argc, char *argv[]) {
       redraw = true;
     } else {
       int lineLength;
+      // TODO: remove redundancy from arrow key navigation and insert/delete.
       switch (inputCode) {
         case KEY_LEFT:
           if (cursorCol == 0) {
@@ -76,6 +77,26 @@ int main(int argc, char *argv[]) {
             }
           } else {
             cursorCol++;
+          }
+          break;
+
+        case KEY_UP:
+          if (cursorRow > 0) {
+            cursorRow--;
+            lineLength = getLineLength(data, cursorRow);
+            if (lineLength < cursorCol) {
+              cursorCol = lineLength;
+            }
+          }
+          break;
+
+        case KEY_DOWN:
+          if (cursorRow + 1 < data->lineCount) {
+            cursorRow++;
+            lineLength = getLineLength(data, cursorRow);
+            if (lineLength < cursorCol) {
+              cursorCol = lineLength;
+            }
           }
           break;
 
@@ -105,14 +126,40 @@ int main(int argc, char *argv[]) {
       }
     }
 
+    int w = 0, h = 0;
+    getmaxyx(data->window, h, w);
+
+    // Update scrolling.
+    // TODO: remove redundancy.
+    int rCursorRow = cursorRow - data->rowOffset;
+    int rCursorCol = cursorCol - data->colOffset;
+
+    if (rCursorRow >= h) {
+      data->rowOffset += rCursorRow - h + 1;
+      redraw = true;
+    } else if (rCursorRow < 0 && data->rowOffset > 0) {
+      data->rowOffset += rCursorRow;
+      redraw = true;
+    }
+
+    if (rCursorCol >= w) {
+      data->colOffset += rCursorCol - w + 1;
+      redraw = true;
+    } else if (rCursorCol < 0 && data->colOffset > 0) {
+      data->colOffset += rCursorCol;
+      redraw = true;
+    }
+
+    // Redraw lines.
     if (redraw) {
       redrawEditor(data);
       redraw = false;
     }
 
-    int w = 0, h = 0;
-    getmaxyx(data->window, h, w);
-    move(cursorRow, cursorCol > w - 1 ? w - 1 : cursorCol);
+    // Update cursor.
+    rCursorRow = cursorRow - data->rowOffset;
+    rCursorCol = cursorCol - data->colOffset;
+    move(rCursorRow, rCursorCol);
 
     if (err) {
       fprintf(stderr, "Error occured.\n");

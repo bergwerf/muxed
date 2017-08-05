@@ -21,8 +21,8 @@ typedef struct {
   int lineCount;
 
   /// Current scrolling offset.
-  int xOffset;
-  int yOffset;
+  int rowOffset;
+  int colOffset;
 } EditorData;
 
 int getLineLength(EditorData *data, int row) {
@@ -37,10 +37,14 @@ void redrawEditor(EditorData *data) {
   erase();
 
   // Draw each line.
-  for (int i = 0; i < h && i + data->xOffset < data->lineCount; i++) {
-    char *lineText = data->textBuffer[i];
+  int offset = data->colOffset;
+  for (int i = 0; i < h && i + data->rowOffset < data->lineCount; i++) {
+    char *lineText = data->textBuffer[i + data->rowOffset];
     int lineLength = strlen(lineText);
-    mvaddnstr(i, 0, lineText, lineLength > w ? w : lineLength);
+    int relLength = lineLength - offset;
+    if (relLength > 0) {
+      mvaddnstr(i, 0, lineText + offset, relLength > w ? w : relLength);
+    }
   }
 
   // Refresh screen.
