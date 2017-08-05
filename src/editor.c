@@ -5,6 +5,7 @@
 #include <curses.h>
 #include <string.h>
 
+/// All editor data.
 typedef struct {
   WINDOW *window;
 
@@ -27,12 +28,14 @@ typedef struct {
 void redrawEditor(EditorData *data) {
   // Get dimensions and erase.
   int w = 0, h = 0;
-  getmaxyx(data->window, w, h);  // Note: this is an ugly dirty macro.
+  getmaxyx(data->window, h, w);  // Note: this is an ugly dirty macro.
   erase();
 
   // Draw each line.
   for (int i = 0; i < h && i + data->xOffset < data->lineCount; i++) {
-    mvaddstr(0, i, data->textBuffer[i]);
+    char *lineText = data->textBuffer[i];
+    int lineLength = strlen(lineText);
+    mvaddnstr(i, 0, lineText, lineLength > w ? w : lineLength);
   }
 
   // Refresh screen.
@@ -85,6 +88,31 @@ bool insertText(EditorData *data, int row, int col, char *fragment, int n) {
 
   // Ensure the string is NULL-terminated.
   newLine[oldLineLength + n] = 0;
+
+  // Swap and free.
+  data->textBuffer[row] = newLine;
+  free(oldLine);
+
+  return false;
+}
+
+/// Delete n characters from the given position in the text buffer going
+/// backward. Returns true on error.
+bool removeText(EditorData *data, int row, int col, int n) {
+  if (data->lineCount <= row) return true;
+  if (col < n) return true;
+
+  char *oldLine = data->textBuffer[row];
+  int oldLineLength = strlen(oldLine);
+  if (oldLineLength < col) return true;
+
+  // Reallocate the given line and copy parts of the old line.
+  char *newLine = (char *)malloc((oldLineLength - n) * sizeof(char));
+  strncpy(newLine, oldLine, col - n);
+  strncpy(newLine + col - n, oldLine + col, oldLineLength - col);
+
+  // Ensure the string is NULL-terminated.
+  newLine[oldLineLength - n] = 0;
 
   // Swap and free.
   data->textBuffer[row] = newLine;

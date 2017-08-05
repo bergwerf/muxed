@@ -24,22 +24,51 @@ int main(int argc, char *argv[]) {
   insertLine(data, -1);
 
   // Keyboard event loop.
-  bool quit = false;
+  int cursorRow = 0, cursorCol = 0;
+  bool quit = false, err = false, redraw = false;
   int exitCode = EXIT_SUCCESS;
   while (!quit) {
     int inputCode = getch();
     if (inputCode >= ' ' && inputCode <= '~') {
       char charCode = (char)inputCode;
-      bool err = insertText(data, 0, 0, &charCode, 1);
-
-      if (err) {
-        fprintf(stderr, "Error handling event.\n");
-        exitCode = EXIT_FAILURE;
-        quit = true;
-      } else {
-        redrawEditor(data);
-        move(0, 0);
+      err = insertText(data, cursorRow, cursorCol, &charCode, 1);
+      cursorCol++;
+      redraw = true;
+    } else {
+      // TODO: wrap around!
+      switch (inputCode) {
+        case KEY_LEFT:
+          cursorCol--;
+          break;
+        case KEY_RIGHT:
+          cursorCol++;
+          break;
+        case KEY_BACKSPACE:
+          err = removeText(data, cursorRow, cursorCol, 1);
+          redraw = true;
+          cursorCol--;
+          break;
+        case '\n':
+          err = insertLine(data, cursorRow);
+          cursorRow++;
+          cursorCol = 0;
+          break;
       }
+    }
+
+    if (redraw) {
+      redrawEditor(data);
+      redraw = false;
+    }
+
+    int w = 0, h = 0;
+    getmaxyx(data->window, h, w);
+    move(cursorRow, cursorCol > w - 1 ? w - 1 : cursorCol);
+
+    if (err) {
+      fprintf(stderr, "Error occured.\n");
+      exitCode = EXIT_FAILURE;
+      quit = true;
     }
   }
 
